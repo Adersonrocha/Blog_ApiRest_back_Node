@@ -15,7 +15,7 @@ const generate = function(){
 
 
 const request =  function(url, method, data){
-    return axios({url, method, data});
+    return axios({url, method, data, validateStatus: false});
 };
 
 /*
@@ -24,16 +24,15 @@ o metodo que você está trabalhando.
 */
 
 
-test('teste rota get /posts retorna todos os dados do banco',
-async function (){
+test('teste rota get /posts retorna todos os dados do banco',async function (){
 
     const post1 = await postsService.savePost({title: generate(), contente: generate()})
     const post2 = await postsService.savePost({title: generate(), contente: generate()})
     const post3 = await postsService.savePost({title: generate(), contente: generate()})
    
    
-    const response = await request('http://localhost:3000/posts', 'get'
-    );
+    const response = await request('http://localhost:3000/posts', 'get' );
+    expect(response.status).toBe(200);
 
     const posts = response.data;
 
@@ -46,13 +45,14 @@ async function (){
 });
 
 
-test('teste rota post /posts  testa se foi inserico o objeto no banco',async function (){
+test('teste rota savepost /posts  testa se foi inserido o objeto no banco',async function (){
 
     //criando o objeto
     const data = {title: generate(), contente: generate()}
  
     const response = await request('http://localhost:3000/posts', 'post', data );
-
+    // esse status 201 informa para o cliente que o post foi armazenado com sucesso.
+    expect(response.status).toBe(201);
     const post = response.data;
 
   expect(post.title).toBe(data.title);
@@ -62,6 +62,24 @@ test('teste rota post /posts  testa se foi inserico o objeto no banco',async fun
  
 });
 
+test('teste rota savepost /posts  não pode inserir no Banco post duplicado',async function (){
+
+  //criando o objeto
+  const data = {title: generate(), contente: generate()}
+
+  const response1 = await request('http://localhost:3000/posts', 'post', data );
+  const response2 = await request('http://localhost:3000/posts', 'post', data );
+  
+  // esse status 201 informa para o cliente que o post foi armazenado com sucesso.
+  expect(response1.status).toBe(201);
+  expect(response2.status).toBe(409);
+  const post = response1.data;
+
+await postsService.deletePost(post.id);
+
+});
+
+
 test(' atualiza um post ',async function (){
 
 
@@ -70,7 +88,8 @@ test(' atualiza um post ',async function (){
     post.contente= generate()
     //criando o objeto
  
-    await request(`http://localhost:3000/posts/${post.id}`, 'put', post);
+    const response = await request(`http://localhost:3000/posts/${post.id}`, 'put', post);
+    expect(response.status).toBe(204);
 
     const updatePost = await postsService.getPost(post.id);
 
@@ -84,7 +103,18 @@ test(' atualiza um post ',async function (){
 
 test(' deleta um post', async function () {
 	const post = await postsService.savePost({ title: generate(), contente: generate() });
-	await request(`http://localhost:3000/posts/${post.id}`, 'delete');
+  const response =	await request(`http://localhost:3000/posts/${post.id}`, 'delete');
+  expect(response.status).toBe(204);
 	const posts = await postsService.getPosts();
 	expect(posts).toHaveLength(0);
+});
+
+
+test('Não deve atualiza um post ',async function (){
+  const post = {
+    id :1 
+  };
+  const response = await request(`http://localhost:3000/posts/${post.id}`, 'put', post);
+  expect(response.status).toBe(404);
+
 });

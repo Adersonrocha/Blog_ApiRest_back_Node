@@ -25,3 +25,7 @@ exports.deletePost =  function(id){
 exports.updatePost = function(id, post){
     return database.none('update blog.post set title = $1 , contente = $2 where id = $3', [post.title , post.contente , id]);
 };
+
+exports.getPostByTitle = function(title){
+    return database.oneOrNone('select * from blog.post where title =$1', [title]);
+};
